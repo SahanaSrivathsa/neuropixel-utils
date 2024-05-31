@@ -1,5 +1,6 @@
 classdef ChannelMap
 % Author: Daniel J. O'Shea (2019)
+% SS edited for NP2
 
     properties
         file  (1, 1) string
@@ -79,8 +80,8 @@ classdef ChannelMap
             map.connected = Neuropixel.Utils.makecol(d.connected);
             if isfield(d, 'shankInd')
                 map.shankInd = Neuropixel.Utils.makecol(d.shankInd);
-            else
-                map.shankInd = ones(size(map.connected));
+            elseif isfield(d, 'kcoords')
+                map.shankInd = Neuropixel.Utils.makecol(d.kcoords);
             end
             map.xcoords = Neuropixel.Utils.makecol(d.xcoords);
             map.ycoords = Neuropixel.Utils.makecol(d.ycoords);

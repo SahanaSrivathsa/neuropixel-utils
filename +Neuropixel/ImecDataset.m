@@ -1,5 +1,7 @@
 classdef ImecDataset < handle
 % Author: Daniel J. O'Shea (2019)
+% Cowen edits for readability
+% SS edits for NP2 reading
 
     properties(SetAccess = protected)
         pathRoot char = '';
@@ -44,7 +46,7 @@ classdef ImecDataset < handle
     end
 
     properties(Constant)
-        bytesPerSample = 2;
+        bytesPerSample = 2; % SS not sure where this is determined
     end
 
     properties(Dependent)
@@ -128,14 +130,14 @@ classdef ImecDataset < handle
                     isLFOnly = true;
                     [imec.pathRoot, imec.fileStem, imec.fileTypeLF, imec.fileImecNumber] = Neuropixel.ImecDataset.parseImecFileName(file);
                 end
-            elseif numel(file) == 1
-                [imec.pathRoot, imec.fileStem, imec.fileTypeAP, imec.fileImecNumber] = Neuropixel.ImecDataset.parseImecFileName(file);
-                isLFOnly= false;
-            else
+            elseif iscell(file) % Cowen: Fixed bug here with reading a single (non cell array) file.
                 for iF = 1:numel(file)
                     fprintf('Possible match: %s\n', file{iF});
                 end
                 error('Multiple imec datasets found in specified location, include file stem or a full path to refine the search');
+            else
+                [imec.pathRoot, imec.fileStem, imec.fileTypeAP, imec.fileImecNumber] = Neuropixel.ImecDataset.parseImecFileName(file);
+                isLFOnly= false;
             end
             
             if ~isLFOnly
@@ -250,8 +252,18 @@ classdef ImecDataset < handle
             % parse imroTable
             m = regexp(meta.imroTbl, '\(([\d, ]*)\)', 'tokens');
             gainVals = strsplit(m{2}{1}, ' ');
-            imec.apGain = str2double(gainVals{4});
-            imec.lfGain = str2double(gainVals{5});
+            apGainVal = str2double(gainVals{4});
+            lfGainVal = str2double(gainVals{5});
+            
+            if apGainVal == 0
+                apGainVal = meta.imChan0apGain;
+            end
+            if lfGainVal == 0
+                lfGainVal = meta.imChan0apGain;
+            end
+            
+            imec.apGain = apGainVal;
+            imec.lfGain = lfGainVal;
             
             if imec.hasAP
                 imec.apRange = [metaAP.imAiRangeMin metaAP.imAiRangeMax];
@@ -264,6 +276,8 @@ classdef ImecDataset < handle
             % copy snsShankMap in case needed for building channel map
             if isfield(meta, 'snsShankMap')
                 imec.snsShankMap = meta.snsShankMap;
+            elseif isfield(meta, 'snsGeomMap')
+                imec.snsShankMap = meta.snsGeomMap;
             end
 
             % look at AP meta fields that might have been set by us
